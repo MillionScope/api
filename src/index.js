@@ -41,7 +41,21 @@ export default {
 					return responseError(null, "No ai environment found", 404, corsHeaders)
 				}
 
-				return fetchStreamChat(request, env, corsHeaders)
+				if (url.pathname.startsWith("/auth/")) {
+					switch (path) {
+						case "/auth/callback/github":
+							return handleGithubCallback(request, env, corsHeaders)
+						case "/auth/user":
+							return handleGetUser(request, env, corsHeaders)
+						case "/auth/logout":
+							return handleLogout(request, env, corsHeaders)
+						default:
+							return responseFailed(null, "Invalid api", 404, corsHeaders)
+					}
+				} else {
+					// else if (url.pathname.startsWith("/api/")) {
+					return fetchStreamChat(request, env, corsHeaders)
+				}
 
 				// if (menthod === "GET") {
 				// 	switch (path) {
