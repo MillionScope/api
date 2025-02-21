@@ -2,6 +2,7 @@ import { responseError, responseFailed } from "./response"
 import { fetchChat } from "./chat/fetchChat"
 import { finishChat } from "./chat/finishChat"
 import { startChat } from "./chat/startChat"
+import { streamText } from "./chat/streamText"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -39,24 +40,26 @@ export default {
 					return responseError(null, "No database found", 404, corsHeaders)
 				}
 
-				if (menthod === "GET") {
-					switch (path) {
-						case "/api/chat":
-							return fetchChat(request, db, corsHeaders)
+				return streamText(request, env, corsHeaders)
 
-						default:
-							return responseFailed(null, "Invalid api", 404, corsHeaders)
-					}
-				} else if (menthod === "POST") {
-					switch (path) {
-						case "/api/start-chat":
-							return startChat(request, db, corsHeaders)
-						case "/api/finish-chat":
-							return finishChat(request, db, corsHeaders)
-						default:
-							return responseFailed(null, "Invalid api", 404, corsHeaders)
-					}
-				}
+				// if (menthod === "GET") {
+				// 	switch (path) {
+				// 		case "/api/chat":
+				// 			return fetchChat(request, db, corsHeaders)
+
+				// 		default:
+				// 			return responseFailed(null, "Invalid api", 404, corsHeaders)
+				// 	}
+				// } else if (menthod === "POST") {
+				// 	switch (path) {
+				// 		case "/api/start-chat":
+				// 			return startChat(request, db, corsHeaders)
+				// 		case "/api/finish-chat":
+				// 			return finishChat(request, db, corsHeaders)
+				// 		default:
+				// 			return responseFailed(null, "Invalid api", 404, corsHeaders)
+				// 	}
+				// }
 			}
 
 			return responseError(null, "Invalid api", 404, corsHeaders)
