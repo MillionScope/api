@@ -3,6 +3,9 @@ import { fetchChat } from "./chat/fetchChat"
 import { finishChat } from "./chat/finishChat"
 import { startChat } from "./chat/startChat"
 import { fetchStreamChat } from "./chat/fetchStreamChat"
+import { handleGithubCallback } from "./auth/handleGithubCallback"
+import { handleGetUser } from "./auth/handleGetUser"
+import { handleLogout } from "./auth/handleLogout"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -15,10 +18,9 @@ export default {
 			"Access-Control-Allow-Credentials": "true",
 			"Access-Control-Max-Age": "86400",
 		}
-		// if (origin && allowedOrigins.includes(origin)) {
-		// 	corsHeaders["Access-Control-Allow-Origin"] = origin
-		// }
-		corsHeaders["Access-Control-Allow-Origin"] = "*"
+		if (origin && allowedOrigins.includes(origin)) {
+			corsHeaders["Access-Control-Allow-Origin"] = origin
+		}
 
 		if (request.method === "OPTIONS") {
 			// Handle CORS preflight requests
@@ -30,7 +32,18 @@ export default {
 		const menthod = request.method
 
 		try {
-			if (url.pathname.startsWith("/api/")) {
+			if (url.pathname.startsWith("/auth/")) {
+				switch (path) {
+					case "/auth/callback/github":
+						return handleGithubCallback(request, env, corsHeaders)
+					case "/auth/user":
+						return handleGetUser(request, env, corsHeaders)
+					case "/auth/logout":
+						return handleLogout(request, env, corsHeaders)
+					default:
+						return responseFailed(null, "Invalid api", 404, corsHeaders)
+				}
+			} else if (url.pathname.startsWith("/api/")) {
 				// const isValid = await isValidateToken(request, env)
 
 				// if (!isValid) {
@@ -41,21 +54,8 @@ export default {
 					return responseError(null, "No ai environment found", 404, corsHeaders)
 				}
 
-				if (url.pathname.startsWith("/auth/")) {
-					switch (path) {
-						case "/auth/callback/github":
-							return handleGithubCallback(request, env, corsHeaders)
-						case "/auth/user":
-							return handleGetUser(request, env, corsHeaders)
-						case "/auth/logout":
-							return handleLogout(request, env, corsHeaders)
-						default:
-							return responseFailed(null, "Invalid api", 404, corsHeaders)
-					}
-				} else {
-					// else if (url.pathname.startsWith("/api/")) {
-					return fetchStreamChat(request, env, corsHeaders)
-				}
+				// else if (url.pathname.startsWith("/api/")) {
+				return fetchStreamChat(request, env, corsHeaders)
 
 				// if (menthod === "GET") {
 				// 	switch (path) {
