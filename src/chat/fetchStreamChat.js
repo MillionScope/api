@@ -1,7 +1,7 @@
 import { createWorkersAI } from "workers-ai-provider"
 import { streamText } from "ai"
 
-export async function streamText(request, env, corsHeaders) {
+export async function fetchStreamChat(request, env, corsHeaders) {
 	const workersai = createWorkersAI({ binding: env.AI })
 	// Use the AI provider to interact with the Vercel AI SDK
 	// Here, we generate a chat stream based on a prompt

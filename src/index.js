@@ -2,7 +2,7 @@ import { responseError, responseFailed } from "./response"
 import { fetchChat } from "./chat/fetchChat"
 import { finishChat } from "./chat/finishChat"
 import { startChat } from "./chat/startChat"
-import { streamText } from "./chat/streamText"
+import { fetchStreamChat } from "./chat/fetchStreamChat"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -15,9 +15,10 @@ export default {
 			"Access-Control-Allow-Credentials": "true",
 			"Access-Control-Max-Age": "86400",
 		}
-		if (origin && allowedOrigins.includes(origin)) {
-			corsHeaders["Access-Control-Allow-Origin"] = origin
-		}
+		// if (origin && allowedOrigins.includes(origin)) {
+		// 	corsHeaders["Access-Control-Allow-Origin"] = origin
+		// }
+		corsHeaders["Access-Control-Allow-Origin"] = "*"
 
 		if (request.method === "OPTIONS") {
 			// Handle CORS preflight requests
@@ -35,12 +36,12 @@ export default {
 				// if (!isValid) {
 				// 	return responseError(null, "Unauthorized", 401, corsHeaders)
 				// }
-				const db = env.DB_HEMVIP
-				if (!db) {
-					return responseError(null, "No database found", 404, corsHeaders)
+				const envAI = env.AI
+				if (!envAI) {
+					return responseError(null, "No ai environment found", 404, corsHeaders)
 				}
 
-				return streamText(request, env, corsHeaders)
+				return fetchStreamChat(request, env, corsHeaders)
 
 				// if (menthod === "GET") {
 				// 	switch (path) {
