@@ -44,7 +44,7 @@ export default {
 					default:
 						return responseFailed(null, "Invalid api", 404, corsHeaders)
 				}
-			} else if (url.pathname.startsWith("/chat/")) {
+			} else if (url.pathname.startsWith("/chat")) {
 				const envAI = env.AI
 				if (!envAI) {
 					return responseError(null, "No ai environment found", 404, corsHeaders)
