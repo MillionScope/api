@@ -22,6 +22,7 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 			"Content-Type": "text/x-unknown",
 			"content-encoding": "identity",
 			"transfer-encoding": "chunked",
+			...corsHeaders,
 		},
 	})
 }
