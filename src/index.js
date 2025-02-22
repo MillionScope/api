@@ -1,11 +1,12 @@
 import { responseError, responseFailed } from "./response"
-import { fetchChat } from "./chat/fetchChat"
-import { finishChat } from "./chat/finishChat"
-import { startChat } from "./chat/startChat"
 import { fetchStreamChat } from "./chat/fetchStreamChat"
 import { handleGithubCallback } from "./auth/handleGithubCallback"
 import { handleGetUser } from "./auth/handleGetUser"
 import { handleLogout } from "./auth/handleLogout"
+import { getChatById } from "./chat/getChatById"
+import { getChatsByUserId } from "./chat/getChatsByUserId"
+import { saveMessage } from "./message/saveMessage"
+import { getMessagesByChatId } from "./message/getMessagesByChatId"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -43,38 +44,50 @@ export default {
 					default:
 						return responseFailed(null, "Invalid api", 404, corsHeaders)
 				}
+			} else if (url.pathname.startsWith("/chat/")) {
+				const envAI = env.AI
+				if (!envAI) {
+					return responseError(null, "No ai environment found", 404, corsHeaders)
+				}
+
+				return fetchStreamChat(request, env, corsHeaders)
 			} else if (url.pathname.startsWith("/api/")) {
 				// const isValid = await isValidateToken(request, env)
 
 				// if (!isValid) {
 				// 	return responseError(null, "Unauthorized", 401, corsHeaders)
 				// }
-				const envAI = env.AI
-				if (!envAI) {
-					return responseError(null, "No ai environment found", 404, corsHeaders)
-				}
 
 				// else if (url.pathname.startsWith("/api/")) {
-				return fetchStreamChat(request, env, corsHeaders)
+				const db = env.DB_CHAT
+				if (!db) {
+					return responseError(null, "No db environment found", 404, corsHeaders)
+				}
 
-				// if (menthod === "GET") {
-				// 	switch (path) {
-				// 		case "/api/chat":
-				// 			return fetchChat(request, db, corsHeaders)
+				if (menthod === "GET") {
+					switch (path) {
+						case "/api/chat-by-id":
+							return getChatById(request, db, corsHeaders)
+						case "/api/chat-by-userid":
+							return getChatsByUserId(request, db, corsHeaders)
+						case "/api/message-by-chatid":
+							return getMessagesByChatId(request, db, corsHeaders)
 
-				// 		default:
-				// 			return responseFailed(null, "Invalid api", 404, corsHeaders)
-				// 	}
-				// } else if (menthod === "POST") {
-				// 	switch (path) {
-				// 		case "/api/start-chat":
-				// 			return startChat(request, db, corsHeaders)
-				// 		case "/api/finish-chat":
-				// 			return finishChat(request, db, corsHeaders)
-				// 		default:
-				// 			return responseFailed(null, "Invalid api", 404, corsHeaders)
-				// 	}
-				// }
+						default:
+							return responseFailed(null, "Invalid get api", 404, corsHeaders)
+					}
+				} else if (menthod === "POST") {
+					switch (path) {
+						case "/api/message":
+							return saveMessage(request, db, corsHeaders)
+						// case "/api/start-chat":
+						// 	return startChat(request, db, corsHeaders)
+						// case "/api/finish-chat":
+						// 	return finishChat(request, db, corsHeaders)
+						default:
+							return responseFailed(null, "Invalid post api", 404, corsHeaders)
+					}
+				}
 			}
 
 			return responseError(null, "Invalid api", 404, corsHeaders)
