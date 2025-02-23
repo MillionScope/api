@@ -1,8 +1,8 @@
 import { generateText } from "ai"
 
-export async function generateTitleFromUserMessage({ aiModel: workersai, message }) {
+export async function generateTitleFromUserMessage(workersai, message) {
 	const { text: title } = await generateText({
-		model: workersai,
+		model: workersai('@cf/meta/llama-2-7b-chat-int8'),
 		system: `\n
 	  - you will generate a short title based on the first message a user begins a conversation with
 	  - ensure it is not more than 80 characters long

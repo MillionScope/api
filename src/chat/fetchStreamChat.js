@@ -1,5 +1,5 @@
 import { createWorkersAI } from "workers-ai-provider"
-import { createDataStreamResponse, smoothStream, streamText } from "ai"
+import { createDataStreamResponse, generateText, smoothStream, streamText } from "ai"
 import { generateTitleFromUserMessage } from "@/ai/task"
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
@@ -11,6 +11,7 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 		console.log("aienv", aienv)
 		return responseFailed(null, "No ai environment found", 404, corsHeaders)
 	}
+	console.log("aienv", JSON.stringify(aienv))
 
 	const db = env.DB_CHAT
 	if (!db) {
@@ -19,15 +20,18 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 	}
 
 	const { id, messages, selectedChatModel } = await request.json()
+	const userid = "5553a32b2fa51b29575dbe28bd6b36cd"
 
 	if (!id || !messages || !selectedChatModel) {
+		console.log("data", { id, messages, selectedChatModel })
 		return responseFailed(null, "Missing param in request", 400, corsHeaders)
 	}
+	console.log("id, messages, selectedChatModel", id, JSON.stringify(messages), selectedChatModel)
 
 	const workersai = createWorkersAI({ binding: aienv })
 
 	const userMessage = getMostRecentUserMessage(messages)
-	console.log("go here userMessage", userMessage)
+	// console.log("go here userMessage", userMessage)
 
 	if (!userMessage) {
 		console.log("messages", messages)
@@ -36,12 +40,16 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 
 	const chat = await getChatById(db, id)
 
-	if (!chat) {
+	if (!chat || chat.length === 0) {
+		console.log("chat", chat)
 		const title = await generateTitleFromUserMessage(workersai, userMessage)
-		await saveChat(db, id, session.user.id, title)
+		console.log("title generated", title)
+		await saveChat(db, id, userid, title)
 	}
 
-	await saveMessages(db, [{ ...userMessage, createdAt: new Date(), chatId: id }])
+	const newMessage = [{ ...userMessage, createdAt: new Date().toISOString(), chatId: id }]
+	console.log("newMessage", JSON.stringify(newMessage))
+	await saveMessages(db, newMessage)
 
 	// Use the AI provider to interact with the Vercel AI SDK
 	// Here, we generate a chat stream based on a prompt
@@ -66,13 +74,16 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 	// 	},
 	// })
 	return createDataStreamResponse({
+		headers: {
+			...corsHeaders,
+		},
 		execute: (dataStream) => {
 			const result = streamText({
-				model: workersai,
+				model: workersai("@cf/meta/llama-2-7b-chat-int8"),
 				system: systemPrompt({ selectedChatModel }),
 				messages,
 				maxSteps: 5,
-				experimental_transform: smoothStream({ chunking: "word" }),
+				// experimental_transform: smoothStream({ chunking: "word" }),
 				// experimental_generateMessageId: generateUUID,
 				// tools: {
 				//   getWeather,
@@ -83,34 +94,34 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 				//     dataStream,
 				//   }),
 				// },
-				onFinish: async ({ response, reasoning }) => {
-					if (session.user?.id) {
-						try {
-							const sanitizedResponseMessages = sanitizeResponseMessages({
-								messages: response.messages,
-								reasoning,
-							})
+				// onFinish: async ({ response, reasoning }) => {
+				// 	if (session.user?.id) {
+				// 		try {
+				// 			const sanitizedResponseMessages = sanitizeResponseMessages({
+				// 				messages: response.messages,
+				// 				reasoning,
+				// 			})
 
-							const messagesSanitized = sanitizedResponseMessages.map((message) => {
-								return {
-									id: message.id,
-									chatId: id,
-									role: message.role,
-									content: message.content,
-									createdAt: new Date(),
-								}
-							})
+				// 			const messagesSanitized = sanitizedResponseMessages.map((message) => {
+				// 				return {
+				// 					id: message.id,
+				// 					chatId: id,
+				// 					role: message.role,
+				// 					content: message.content,
+				// 					createdAt: new Date(),
+				// 				}
+				// 			})
 
-							await saveMessages(db, messagesSanitized)
-						} catch (error) {
-							console.error("Failed to save chat")
-						}
-					}
-				},
-				experimental_telemetry: {
-					isEnabled: true,
-					functionId: "stream-text",
-				},
+				// 			await saveMessages(db, messagesSanitized)
+				// 		} catch (error) {
+				// 			console.error("Failed to save chat")
+				// 		}
+				// 	}
+				// },
+				// experimental_telemetry: {
+				// 	isEnabled: true,
+				// 	functionId: "stream-text",
+				// },
 			})
 
 			result.consumeStream()
@@ -126,25 +137,31 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 }
 
 async function getChatById(db, id) {
-	console.log("id")
-	const { results: chat } = await db.prepare("SELECT * FROM Chat WHERE id =? ").bind(id).run()
+	const { results: chat } = await db.prepare("SELECT * FROM Chat WHERE id = ? ").bind(id).run()
 
 	return chat
 }
 
 async function saveChat(db, id, userId, title) {
-	console.log("saveChat", id, userId, title)
-	const { results: chat } = await db.prepare("INSERT INTO Chat (id, userId, title) VALUES (?, ?, ?)").bind(id, userId, title).run()
+	console.log("function.saveChat", id, userId, title)
+	const messages = String({
+		text: "Hello, how are you?",
+	})
+	const { results: chat } = await db
+		.prepare("INSERT INTO Chat (id, userId, title, messages, createdAt) VALUES (?, ?, ?, ?, ?)")
+		.bind(id, userId, title, messages, new Date().toISOString())
+		.run()
 
 	return chat
 }
 
 async function saveMessages(db, messages) {
-	console.log("saveMessages", messages)
-	const stmt = db.prepare("INSERT INTO Message (id, chatId, role, content, createdAt) VALUES (?, ?, ?, ?, ?)")
-	const batch = Array.from(messages).map((message) =>
-		stmt.bind(message.id, message.chatId, message.role, message.content, message.createdAt)
-	)
+	console.log("function.saveMessages", JSON.stringify(messages))
+	const stmt = db.prepare("INSERT INTO Message (chatId, role, content, createdAt) VALUES (?, ?, ?, ?)")
+	const batch = Array.from(messages).map((message) => {
+		console.log("map.message", JSON.stringify(message))
+		return stmt.bind(message.chatId, message.role, message.content, message.createdAt)
+	})
 
 	const batchResults = await db.batch(batch)
 
