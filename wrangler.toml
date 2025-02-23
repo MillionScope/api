@@ -22,6 +22,7 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGIN = "https://millionscope.github.io"
 ALLOWED_ORIGIN2 = "https://millionscope.pages.dev"
+ALLOWED_ORIGIN3 = "https://millionscope.com"
 GITHUB_CLIENT_ID = "Ov23liaP7osUAakZI87r"
 ENVIRONMENT = "production"
 NODE_VERSION = "22.14.0"

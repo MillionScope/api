@@ -10,7 +10,7 @@ import { getMessagesByChatId } from "./message/getMessagesByChatId"
 
 export default {
 	async fetch(request, env, ctx) {
-		const allowedOrigins = [env.ALLOWED_ORIGIN, env.ALLOWED_ORIGIN2] // List of allowed origins
+		const allowedOrigins = [env.ALLOWED_ORIGIN, env.ALLOWED_ORIGIN2, env.ALLOWED_ORIGIN3] // List of allowed origins
 		const origin = request.headers.get("Origin")
 
 		const corsHeaders = {
