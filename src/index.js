@@ -7,6 +7,7 @@ import { getChatById } from "./chat/getChatById"
 import { getChatsByUserId } from "./chat/getChatsByUserId"
 import { saveMessage } from "./message/saveMessage"
 import { getMessagesByChatId } from "./message/getMessagesByChatId"
+import { createUser } from "./auth/createUser"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -41,6 +42,9 @@ export default {
 						return handleGetUser(request, env, corsHeaders)
 					case "/auth/logout":
 						return handleLogout(request, env, corsHeaders)
+					case "/auth/create":
+						return createUser(request, env, corsHeaders)
+
 					default:
 						return responseFailed(null, "Invalid api", 404, corsHeaders)
 				}
@@ -86,6 +90,16 @@ export default {
 						// 	return finishChat(request, db, corsHeaders)
 						default:
 							return responseFailed(null, "Invalid post api", 404, corsHeaders)
+					}
+				} else if (menthod === "DELETE") {
+					switch (path) {
+						case "/api/delete-chat":
+							return deleteChat(request, db, corsHeaders)
+
+							break;
+
+						default:
+							break;
 					}
 				}
 			}

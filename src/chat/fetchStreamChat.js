@@ -43,7 +43,6 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 	if (!chat || chat.length === 0) {
 		console.log("chat", chat)
 		const title = await generateTitleFromUserMessage(workersai, userMessage)
-		console.log("title generated", title)
 		await saveChat(db, id, userid, title)
 	}
 
@@ -83,45 +82,45 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 				system: systemPrompt({ selectedChatModel }),
 				messages,
 				maxSteps: 5,
-				// experimental_transform: smoothStream({ chunking: "word" }),
-				// experimental_generateMessageId: generateUUID,
-				// tools: {
-				//   getWeather,
-				//   createDocument: createDocument({ session, dataStream }),
-				//   updateDocument: updateDocument({ session, dataStream }),
-				//   requestSuggestions: requestSuggestions({
-				//     session,
-				//     dataStream,
-				//   }),
-				// },
-				// onFinish: async ({ response, reasoning }) => {
-				// 	if (session.user?.id) {
-				// 		try {
-				// 			const sanitizedResponseMessages = sanitizeResponseMessages({
-				// 				messages: response.messages,
-				// 				reasoning,
-				// 			})
+				experimental_transform: smoothStream({ chunking: "word" }),
+				experimental_generateMessageId: generateUUID,
+				tools: {
+				  getWeather,
+				  createDocument: createDocument({ session, dataStream }),
+				  updateDocument: updateDocument({ session, dataStream }),
+				  requestSuggestions: requestSuggestions({
+				    session,
+				    dataStream,
+				  }),
+				},
+				onFinish: async ({ response, reasoning }) => {
+					if (session.user?.id) {
+						try {
+							const sanitizedResponseMessages = sanitizeResponseMessages({
+								messages: response.messages,
+								reasoning,
+							})
 
-				// 			const messagesSanitized = sanitizedResponseMessages.map((message) => {
-				// 				return {
-				// 					id: message.id,
-				// 					chatId: id,
-				// 					role: message.role,
-				// 					content: message.content,
-				// 					createdAt: new Date(),
-				// 				}
-				// 			})
+							const messagesSanitized = sanitizedResponseMessages.map((message) => {
+								return {
+									id: message.id,
+									chatId: id,
+									role: message.role,
+									content: message.content,
+									createdAt: new Date(),
+								}
+							})
 
-				// 			await saveMessages(db, messagesSanitized)
-				// 		} catch (error) {
-				// 			console.error("Failed to save chat")
-				// 		}
-				// 	}
-				// },
-				// experimental_telemetry: {
-				// 	isEnabled: true,
-				// 	functionId: "stream-text",
-				// },
+							await saveMessages(db, messagesSanitized)
+						} catch (error) {
+							console.error("Failed to save chat")
+						}
+					}
+				},
+				experimental_telemetry: {
+					isEnabled: true,
+					functionId: "stream-text",
+				},
 			})
 
 			result.consumeStream()
@@ -143,13 +142,9 @@ async function getChatById(db, id) {
 }
 
 async function saveChat(db, id, userId, title) {
-	console.log("function.saveChat", id, userId, title)
-	const messages = String({
-		text: "Hello, how are you?",
-	})
 	const { results: chat } = await db
-		.prepare("INSERT INTO Chat (id, userId, title, messages, createdAt) VALUES (?, ?, ?, ?, ?)")
-		.bind(id, userId, title, messages, new Date().toISOString())
+		.prepare("INSERT INTO Chat (id, userId, title, createdAt) VALUES (?, ?, ?, ?)")
+		.bind(id, userId, title, new Date().toISOString())
 		.run()
 
 	return chat
@@ -159,7 +154,6 @@ async function saveMessages(db, messages) {
 	console.log("function.saveMessages", JSON.stringify(messages))
 	const stmt = db.prepare("INSERT INTO Message (chatId, role, content, createdAt) VALUES (?, ?, ?, ?)")
 	const batch = Array.from(messages).map((message) => {
-		console.log("map.message", JSON.stringify(message))
 		return stmt.bind(message.chatId, message.role, message.content, message.createdAt)
 	})
 
