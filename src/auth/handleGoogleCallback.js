@@ -10,6 +10,14 @@ export async function handleGoogleCallback(request, env, corsHeaders) {
 	}
 
 	console.log("GOOGLE_CLIENT_ID", env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, code, env.ALLOWED_ORIGIN)
+	const dataaaa  = new URLSearchParams({
+		code,
+		client_id: env.GOOGLE_CLIENT_ID,
+		client_secret: env.GOOGLE_CLIENT_SECRET,
+		redirect_uri: env.ALLOWED_ORIGIN,
+		grant_type: "authorization_code",
+	})
+	console.log(String(dataaaa))
 
 	// ~~~~~~~~~~~~~ VERIFY TO GET TOKEN ~~~~~~~~~~~~~
 	const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -22,10 +30,13 @@ export async function handleGoogleCallback(request, env, corsHeaders) {
 			client_id: env.GOOGLE_CLIENT_ID,
 			client_secret: env.GOOGLE_CLIENT_SECRET,
 			redirect_uri: env.ALLOWED_ORIGIN,
+			redirect_uri_mismatch: env.ALLOWED_ORIGIN,
 			grant_type: "authorization_code",
 		}),
 	})
 
+	const data222 = await tokenResponse.json()
+	console.log("data222", data222)
 	if (!tokenResponse.ok) {
 		console.log("tokenResponse", tokenResponse)
 		console.log("Failed to exchange authorization code", code)
