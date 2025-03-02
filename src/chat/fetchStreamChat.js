@@ -1,5 +1,5 @@
 import { createWorkersAI } from "workers-ai-provider"
-import { createDataStreamResponse, generateText, smoothStream, streamText } from "ai"
+import { createDataStreamResponse, generateObject, generateText, smoothStream, streamText } from "ai"
 import { generateTitleFromUserMessage } from "@/ai/task"
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
@@ -31,7 +31,6 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 	const workersai = createWorkersAI({ binding: aienv })
 
 	const userMessage = getMostRecentUserMessage(messages)
-	// console.log("go here userMessage", userMessage)
 
 	if (!userMessage) {
 		console.log("messages", messages)
@@ -48,6 +47,13 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 
 	const newMessage = [{ ...userMessage, createdAt: new Date().toISOString(), chatId: id }]
 	console.log("newMessage", JSON.stringify(newMessage))
+	const abc = {
+		id: newMessage.id,
+		chatId: newMessage.chatId,
+		role: newMessage.role,
+		content: newMessage.content,
+		createdAt: new Date().toISOString(),
+	}
 	await saveMessages(db, newMessage)
 
 	// Use the AI provider to interact with the Vercel AI SDK
@@ -83,38 +89,39 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 				messages,
 				maxSteps: 5,
 				experimental_transform: smoothStream({ chunking: "word" }),
-				experimental_generateMessageId: generateUUID,
-				tools: {
-				  getWeather,
-				  createDocument: createDocument({ session, dataStream }),
-				  updateDocument: updateDocument({ session, dataStream }),
-				  requestSuggestions: requestSuggestions({
-				    session,
-				    dataStream,
-				  }),
-				},
+				// experimental_generateMessageId: generateUUID,
+				// tools: {
+				//   getWeather,
+				//   createDocument: createDocument({ session, dataStream }),
+				//   updateDocument: updateDocument({ session, dataStream }),
+				//   requestSuggestions: requestSuggestions({
+				//     session,
+				//     dataStream,
+				//   }),
+				// },
 				onFinish: async ({ response, reasoning }) => {
-					if (session.user?.id) {
-						try {
-							const sanitizedResponseMessages = sanitizeResponseMessages({
-								messages: response.messages,
-								reasoning,
-							})
+					try {
+						// console.log("response", JSON.stringify(response))
+						// console.log("reasoning", JSON.stringify(reasoning))
+						const sanitizedResponseMessages = sanitizeResponseMessages({
+							messages: response.messages,
+							reasoning,
+						})
 
-							const messagesSanitized = sanitizedResponseMessages.map((message) => {
-								return {
-									id: message.id,
-									chatId: id,
-									role: message.role,
-									content: message.content,
-									createdAt: new Date(),
-								}
-							})
+						const messagesSanitized = sanitizedResponseMessages.map((message) => {
+							return {
+								id: message.id,
+								chatId: id,
+								role: message.role,
+								content: message.content,
+								createdAt: new Date().toISOString(),
+							}
+						})
 
-							await saveMessages(db, messagesSanitized)
-						} catch (error) {
-							console.error("Failed to save chat")
-						}
+						await saveMessages(db, messagesSanitized)
+					} catch (error) {
+						console.log("error", error)
+						console.error("Failed to save chat")
 					}
 				},
 				experimental_telemetry: {
@@ -151,10 +158,10 @@ async function saveChat(db, id, userId, title) {
 }
 
 async function saveMessages(db, messages) {
-	console.log("function.saveMessages", JSON.stringify(messages))
+	// console.log("function.saveMessages", JSON.stringify(messages))
 	const stmt = db.prepare("INSERT INTO Message (chatId, role, content, createdAt) VALUES (?, ?, ?, ?)")
 	const batch = Array.from(messages).map((message) => {
-		return stmt.bind(message.chatId, message.role, message.content, message.createdAt)
+		return stmt.bind(message.chatId, message.role, JSON.stringify(message.content), message.createdAt)
 	})
 
 	const batchResults = await db.batch(batch)

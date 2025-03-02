@@ -4,7 +4,7 @@ import { getCookie } from "../utils"
 
 export async function handleGetUser(request, env, corsHeaders) {
 	const cookies = request.headers.get("Cookie") || ""
-	const session_token = getCookie(cookies, "genea-auth-token")
+	const session_token = getCookie(cookies, "auth-token")
 
 	if (!session_token) {
 		return responseFailed(null, "No token provided", 401, corsHeaders)

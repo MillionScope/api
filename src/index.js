@@ -96,8 +96,6 @@ export default {
 						case "/api/delete-chat":
 							return deleteChat(request, db, corsHeaders)
 
-							break;
-
 						default:
 							break;
 					}

@@ -8,7 +8,7 @@ export async function getMessagesByChatId(request, db, corsHeaders) {
 			return responseFailed(null, "id not found", 400, corsHeaders)
 		}
 
-		const { results: chat } = await db.prepare("SELECT * FROM chat WHERE userId = ? ORDER BY createdAt DESC").bind(userid).all()
+		const { results: chat } = await db.prepare("SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt DESC").bind(id).all()
 
 		if (!chat || chat.length === 0) {
 			return responseFailed(null, "No chat found", 404, corsHeaders)

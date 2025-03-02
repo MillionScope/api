@@ -124,13 +124,13 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 	// }
 
 	// Create a new response with the updated headers
-	const response = Response.redirect(`${env.ALLOWED_ORIGIN}/getting-started`, 302)
+	const response = Response.redirect(`${env.ALLOWED_ORIGIN}/`, 302)
 
 	// Set the Set-Cookie header using the correct method
 	const responseWithCookie = new Response(response.body, response)
 	responseWithCookie.headers.set(
 		"Set-Cookie",
-		`genea-auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
+		`auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
 	)
 
 	return responseWithCookie
