@@ -8,6 +8,7 @@ import { getChatsByUserId } from "./chat/getChatsByUserId"
 import { saveMessage } from "./message/saveMessage"
 import { getMessagesByChatId } from "./message/getMessagesByChatId"
 import { createUser } from "./auth/createUser"
+import { handleGoogleCallback } from "./auth/handleGoogleCallback"
 
 export default {
 	async fetch(request, env, ctx) {
@@ -38,6 +39,8 @@ export default {
 				switch (path) {
 					case "/auth/callback/github":
 						return handleGithubCallback(request, env, corsHeaders)
+					case "/auth/callback/google":
+						return handleGoogleCallback(request, env, corsHeaders)
 					case "/auth/user":
 						return handleGetUser(request, env, corsHeaders)
 					case "/auth/logout":

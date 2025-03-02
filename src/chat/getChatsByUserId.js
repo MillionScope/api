@@ -5,6 +5,7 @@ export async function getChatsByUserId(request, db, corsHeaders) {
 		const url = new URL(request.url)
 		const userid = url.searchParams.get("userid") || ""
 		if (!userid) {
+			console.log("request", request)
 			return responseFailed(null, "userid not found", 400, corsHeaders)
 		}
 
