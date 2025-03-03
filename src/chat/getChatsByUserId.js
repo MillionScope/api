@@ -2,6 +2,7 @@ import { responseError, responseFailed, responseSuccess } from "../response"
 
 export async function getChatsByUserId(c) {
 	try {
+		console.log("getChatsByUserId")
 		const userid = c.req.query('userid')
 		if (!userid) {
 			console.log("request", c.req)

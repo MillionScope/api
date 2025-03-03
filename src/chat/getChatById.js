@@ -2,6 +2,7 @@ import { responseError, responseFailed, responseSuccess } from "../response"
 
 export async function getChatById(request, db, corsHeaders) {
 	try {
+		console.log("getChatById")
 		const url = new URL(request.url)
 		const id = url.searchParams.get("id") || ""
 		if (!id) {

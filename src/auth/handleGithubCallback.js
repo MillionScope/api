@@ -125,11 +125,13 @@ export async function handleGithubCallback(c) {
 	// }
 
 	// Create a new response with the updated headers
-	return new Response(null, {
-		status: 302,
-		headers: {
-			Location: `${c.env.ALLOWED_ORIGIN}/`,
-			"Set-Cookie": `auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
-		}
-	})
+
+	const response = Response.redirect(`${c.env.ALLOWED_ORIGIN}/`, 302)
+	const responseWithCookie = new Response(response.body, response)
+	responseWithCookie.headers.set(
+		"Set-Cookie",
+		`auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
+	)
+
+	return responseWithCookie
 }

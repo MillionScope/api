@@ -47,7 +47,7 @@ export async function fetchStreamChat(c) {
 	}
 
 	const newMessage = [{ ...userMessage, createdAt: new Date().toISOString(), chatId: id }]
-	console.log("newMessage", JSON.stringify(newMessage))
+	// console.log("newMessage", JSON.stringify(newMessage))
 	await saveMessages(db, newMessage)
 
 	// Use the AI provider to interact with the Vercel AI SDK

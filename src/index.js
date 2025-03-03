@@ -54,19 +54,17 @@ apiRoutes.use(
 	})
 )
 
-// Chat endpoints
-apiRoutes.get("/chats", async (c) => {
-	return getChatsByUserId(c)
-})
-apiRoutes.post("/chat", async (c) => {
-	return fetchStreamChat(c)
-})
-apiRoutes.get("/chats/:id", getChatById)
-apiRoutes.delete("/chats/:id", deleteChat)
+// ~~~~~~ Chat ~~~~~~
+apiRoutes.get("/chat", getChatById)
+apiRoutes.delete("/chat", deleteChat)
+apiRoutes.get("/chats", getChatsByUserId)
+apiRoutes.get("/chat/:chatId/messages", getMessagesByChatId)
+apiRoutes.post("/chat", fetchStreamChat)
+
+// ~~~~~~ Auth ~~~~~~
 apiRoutes.get("/auth/user", handleGetUser)
 apiRoutes.post("/auth/logout", handleLogout)
-// Message endpoints
-apiRoutes.get("/chats/:chatId/messages", getMessagesByChatId)
+
 apiRoutes.post("/messages", saveMessage)
 
 // apiRoutes.get("/documents", getChatsByUserId)
