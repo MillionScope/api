@@ -9,7 +9,6 @@ export async function handleGoogleCallback(c) {
 		return responseFailed(c, null, "Authorization code not found", 400)
 	}
 
-	console.log("GOOGLE_CLIENT_ID", c.env.GOOGLE_CLIENT_ID, c.env.GOOGLE_CLIENT_SECRET, code, url.origin)
 	// ~~~~~~~~~~~~~ VERIFY TO GET TOKEN ~~~~~~~~~~~~~
 	const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
 		method: "POST",
@@ -25,10 +24,18 @@ export async function handleGoogleCallback(c) {
 		}),
 	})
 
+	// Log token request details for debugging
+	console.log("Token request details:", {
+		clientId: c.env.GOOGLE_CLIENT_ID ? "present" : "missing",
+		clientSecret: c.env.GOOGLE_CLIENT_SECRET ? "present" : "missing",
+		redirectUri,
+		code: code ? "present" : "missing"
+	})
+
 	// ~~~~~~~~~~~~~ GET TOKEN ~~~~~~~~~~~~~
 	const tokenData = await tokenResponse.json()
 	if (!tokenData.access_token) {
-		console.log("tokenData", JSON.stringify(tokenData))
+		console.log("Token Response Error:", JSON.stringify(tokenData))
 		return responseFailed(c, null, `Invalid Google OAuth response: ${JSON.stringify(tokenData)}`, 400)
 	}
 	// console.log("tokenData", JSON.stringify(tokenData))

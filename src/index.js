@@ -56,34 +56,25 @@ apiRoutes.use(
 
 // Chat endpoints
 apiRoutes.get("/chats", async (c) => {
-	const userId = c.req.query('userid')
 	return getChatsByUserId(c)
 })
-apiRoutes.get("/chats/:id", async (c) => {
-	const chatId = c.req.param('id')
-	return getChatById(c)
+apiRoutes.post("/chat", async (c) => {
+	return fetchStreamChat(c)
 })
-apiRoutes.delete("/chats/:id", async (c) => {
-	const chatId = c.req.param('id')
-	return deleteChat(c)
-})
+apiRoutes.get("/chats/:id", getChatById)
+apiRoutes.delete("/chats/:id", deleteChat)
 apiRoutes.get("/auth/user", handleGetUser)
 apiRoutes.post("/auth/logout", handleLogout)
-
 // Message endpoints
-apiRoutes.get("/chats/:chatId/messages", async (c) => {
-	const chatId = c.req.param('chatId')
-	return getMessagesByChatId(c)
-})
+apiRoutes.get("/chats/:chatId/messages", getMessagesByChatId)
 apiRoutes.post("/messages", saveMessage)
 
-// Document endpoints (commented for reference)
 // apiRoutes.get("/documents", getChatsByUserId)
 // apiRoutes.post("/documents", saveMessage)
 // apiRoutes.get("/documents/:id", getChatById)
 // apiRoutes.delete('/documents/:id', async (c) => {
 //   return responseSuccess(c, null, 'Document deleted successfully')
-// })
+// }
 
 app.route(`/api/${API_VERSION}`, apiRoutes)
 
