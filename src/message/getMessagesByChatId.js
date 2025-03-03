@@ -1,22 +1,50 @@
-import { responseError, responseFailed, responseSuccess } from "../response"
+import { responseSuccess, responseFailed } from "../response"
 
-export async function getMessagesByChatId(request, db, corsHeaders) {
+/**
+ * @swagger
+ * /api/v1/chats/{id}/messages:
+ *   get:
+ *     summary: Get all messages for a specific chat
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The chat ID
+ *     responses:
+ *       200:
+ *         description: List of messages for the chat
+ *       400:
+ *         description: Invalid chat ID
+ *       404:
+ *         description: Chat not found
+ */
+export async function getMessagesByChatId(c) {
 	try {
-		const url = new URL(request.url)
-		const id = url.searchParams.get("id") || ""
-		if (!id) {
-			return responseFailed(null, "id not found", 400, corsHeaders)
+		const chatId = c.req.param('id')
+
+		if (!chatId) {
+			return responseFailed(c, null, "Chat ID is required", 400)
 		}
 
-		const { results: chat } = await db.prepare("SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt DESC").bind(id).all()
-
-		if (!chat || chat.length === 0) {
-			return responseFailed(null, "No chat found", 404, corsHeaders)
+		const db = c.env.DB_CHAT
+		if (!db) {
+			return responseFailed(c, null, "Database connection not found", 404)
 		}
 
-		return responseSuccess(chat, "Fetch chat success", corsHeaders)
-	} catch (err) {
-		console.error("Exception:", err)
-		return responseError(err, err.message || "An unknown error occurred", 500, corsHeaders)
+		const { results } = await db
+			.prepare("SELECT * FROM Message WHERE chatId = ? ORDER BY createdAt ASC")
+			.bind(chatId)
+			.run()
+
+		if (!results || results.length === 0) {
+			return responseSuccess(c, [], "No messages found for this chat")
+		}
+
+		return responseSuccess(c, results, "Messages retrieved successfully")
+	} catch (error) {
+		console.error("Error getting messages:", error)
+		return responseFailed(c, null, "Failed to get messages", 500)
 	}
 }

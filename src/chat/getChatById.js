@@ -1,23 +1,30 @@
 import { responseError, responseFailed, responseSuccess } from "../response"
 
-export async function getChatById(request, db, corsHeaders) {
+export async function getChatById(c) {
 	try {
-		console.log("getChatById")
-		const url = new URL(request.url)
-		const id = url.searchParams.get("id") || ""
-		if (!id) {
-			return responseFailed(null, "Id not found", 400, corsHeaders)
+		const chatId = c.req.param('id')
+
+		if (!chatId) {
+			return responseFailed(c, null, "Chat ID is required", 400)
 		}
 
-		const { results: chat } = await db.prepare("SELECT * FROM Chat WHERE id =? ").bind(id).run()
-
-		if (!chat || chat.length === 0) {
-			return responseFailed(null, "No chat found", 404, corsHeaders)
+		const db = c.env.DB_CHAT
+		if (!db) {
+			return responseFailed(c, null, "Database connection not found", 404)
 		}
 
-		return responseSuccess(chat, "Fetch chat success", corsHeaders)
+		const { results } = await db
+			.prepare("SELECT * FROM Chat WHERE id = ?")
+			.bind(chatId)
+			.run()
+
+		if (!results || results.length === 0) {
+			return responseFailed(c, null, "No chat found", 404)
+		}
+
+		return responseSuccess(c, results, "Fetch chat success")
 	} catch (err) {
 		console.error("Exception:", err)
-		return responseError(err, err.message || "An unknown error occurred", 500, corsHeaders)
+		return responseError(c, err.message || "An unknown error occurred", 500)
 	}
 }

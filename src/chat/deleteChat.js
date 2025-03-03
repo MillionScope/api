@@ -1,21 +1,39 @@
 import { responseError, responseFailed, responseSuccess } from "../response"
 
-export async function deleteChat(request, db, corsHeaders) {
+export async function deleteChat(c) {
 	try {
-		const { id } = await request.json()
-		if (!id) {
-			return responseFailed(null, "id not found", 400, corsHeaders)
+		const chatId = c.req.param('id')
+		if (!chatId) {
+			return responseFailed(c, null, "Chat ID is required", 400)
 		}
 
-		const { results: voteResults } = await db.prepare("DELETE FROM Vote WHERE chatId = ?").bind(id).run()
+		const db = c.env.DB_CHAT
+		if (!db) {
+			return responseFailed(c, null, "Database connection not found", 404)
+		}
 
-		const { results: messageResults } = await db.prepare("DELETE FROM Message WHERE chatId = ?").bind(id).run()
+		// Delete votes first due to foreign key constraints
+		await db.prepare("DELETE FROM Vote WHERE chatId = ?")
+			.bind(chatId)
+			.run()
 
-		const { results: chatResults } = await db.prepare("DELETE FROM Chat WHERE chatId = ?").bind(id).run()
+		// Delete messages
+		await db.prepare("DELETE FROM Message WHERE chatId = ?")
+			.bind(chatId)
+			.run()
 
-		return responseSuccess(chat, "Fetch chat success", corsHeaders)
+		// Delete chat
+		const { results } = await db.prepare("DELETE FROM Chat WHERE id = ?")
+			.bind(chatId)
+			.run()
+
+		if (!results || results.length === 0) {
+			return responseFailed(c, null, "Failed to delete chat", 500)
+		}
+
+		return responseSuccess(c, null, "Chat deleted successfully")
 	} catch (err) {
 		console.error("Exception:", err)
-		return responseError(err, err.message || "An unknown error occurred", 500, corsHeaders)
+		return responseError(c, err.message || "An unknown error occurred", 500)
 	}
 }

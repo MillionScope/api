@@ -55,11 +55,17 @@ apiRoutes.use(
 )
 
 // ~~~~~~ Chat ~~~~~~
-apiRoutes.get("/chat", getChatById)
-apiRoutes.delete("/chat", deleteChat)
+// Single chat operations
+apiRoutes.get("/chats/:id", getChatById)
+apiRoutes.delete("/chats/:id", deleteChat)
 apiRoutes.get("/chats", getChatsByUserId)
-apiRoutes.get("/chat/:chatId/messages", getMessagesByChatId)
-apiRoutes.post("/chat", fetchStreamChat)
+
+// Chat messages operations
+apiRoutes.get("/chats/:id/messages", getMessagesByChatId)
+apiRoutes.post("/chats/:id/messages", saveMessage)
+
+// Chat stream
+apiRoutes.post("/chat/:id", fetchStreamChat)
 
 // ~~~~~~ Auth ~~~~~~
 apiRoutes.get("/auth/user", handleGetUser)
