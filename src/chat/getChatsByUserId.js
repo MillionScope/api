@@ -1,23 +1,22 @@
 import { responseError, responseFailed, responseSuccess } from "../response"
 
-export async function getChatsByUserId(request, db, corsHeaders) {
+export async function getChatsByUserId(c) {
 	try {
-		const url = new URL(request.url)
-		const userid = url.searchParams.get("userid") || ""
+		const userid = c.req.query('userid')
 		if (!userid) {
-			console.log("request", request)
-			return responseFailed(null, "userid not found", 400, corsHeaders)
+			console.log("request", c.req)
+			return responseFailed(c, null, "userid not found", 400)
 		}
 
-		const { results: chat } = await db.prepare("SELECT * FROM Chat WHERE userId = ? ORDER BY createdAt DESC").bind(userid).all()
+		const { results: chat } = await c.env.DB_CHAT.prepare("SELECT * FROM Chat WHERE userId = ? ORDER BY createdAt DESC").bind(userid).all()
 
 		if (!chat || chat.length === 0) {
-			return responseFailed(null, "No chat found", 404, corsHeaders)
+			return responseFailed(c, null, "No chat found", 404)
 		}
 
-		return responseSuccess(chat, "Fetch chat success", corsHeaders)
+		return responseSuccess(c, chat, "Fetch chat success")
 	} catch (err) {
 		console.error("Exception:", err)
-		return responseError(err, err.message || "An unknown error occurred", 500, corsHeaders)
+		return responseError(c, err.message || "An unknown error occurred", "Error fetching chats", 500)
 	}
 }

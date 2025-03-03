@@ -1,4 +1,6 @@
-import { responseError, responseFailed } from "./response"
+import { Hono } from "hono"
+import { cors } from "hono/cors"
+import { responseSuccess, responseFailed, responseError } from "./response"
 import { fetchStreamChat } from "./chat/fetchStreamChat"
 import { handleGithubCallback } from "./auth/handleGithubCallback"
 import { handleGetUser } from "./auth/handleGetUser"
@@ -9,107 +11,75 @@ import { saveMessage } from "./message/saveMessage"
 import { getMessagesByChatId } from "./message/getMessagesByChatId"
 import { createUser } from "./auth/createUser"
 import { handleGoogleCallback } from "./auth/handleGoogleCallback"
+import { deleteChat } from "./chat/deleteChat"
+import { API_VERSION } from "./config/constant"
 
-export default {
-	async fetch(request, env, ctx) {
-		const allowedOrigins = [env.ALLOWED_ORIGIN, env.ALLOWED_ORIGIN2, env.ALLOWED_ORIGIN3] // List of allowed origins
-		const origin = request.headers.get("Origin")
+const app = new Hono()
 
-		const corsHeaders = {
-			"Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS, PATCH",
-			"Access-Control-Allow-Headers": "Content-Type",
-			"Access-Control-Allow-Credentials": "true",
-			"Access-Control-Max-Age": "86400",
+// Middleware for CORS
+app.use(
+	"*",
+	cors((c) => {
+		const allowedOrigins = [c.env.ALLOWED_ORIGIN, c.env.ALLOWED_ORIGIN2, c.env.ALLOWED_ORIGIN3]
+		const origin = c.req.header("Origin")
+		console.log("origin", origin)
+		return {
+			origin: allowedOrigins.includes(origin) ? origin : "abc",
+			allowMethods: ["GET", "HEAD", "POST", "OPTIONS", "PATCH"],
+			allowHeaders: ["Content-Type"],
+			credentials: true,
+			maxAge: 86400,
 		}
-		if (origin && allowedOrigins.includes(origin)) {
-			corsHeaders["Access-Control-Allow-Origin"] = origin
-		}
+	})
+)
 
-		if (request.method === "OPTIONS") {
-			// Handle CORS preflight requests
-			return new Response(null, { headers: corsHeaders })
-		}
+// Auth routes
+app.post("/auth/callback/github", handleGithubCallback)
+app.post("/auth/callback/google", handleGoogleCallback)
+app.get("/auth/user", handleGetUser)
+app.post("/auth/logout", handleLogout)
+app.post("/auth/create", createUser)
 
-		const url = new URL(request.url)
-		const path = url.pathname
-		const menthod = request.method
+// Chat routes
+app.post("/chat", async (c) => {
+	if (!c.env.AI) {
+		return responseError(c, "No AI environment found", 404)
+	}
+	return fetchStreamChat(c)
+})
 
-		try {
-			if (url.pathname.startsWith("/auth/")) {
-				switch (path) {
-					case "/auth/callback/github":
-						return handleGithubCallback(request, env, corsHeaders)
-					case "/auth/callback/google":
-						return handleGoogleCallback(request, env, corsHeaders)
-					case "/auth/user":
-						return handleGetUser(request, env, corsHeaders)
-					case "/auth/logout":
-						return handleLogout(request, env, corsHeaders)
-					case "/auth/create":
-						return createUser(request, env, corsHeaders)
+// Document API routes
+const apiRoutes = new Hono()
 
-					default:
-						return responseFailed(null, "Invalid api", 404, corsHeaders)
-				}
-			} else if (url.pathname.startsWith("/chat")) {
-				const envAI = env.AI
-				if (!envAI) {
-					return responseError(null, "No ai environment found", 404, corsHeaders)
-				}
+// Chat endpoints
+// console.log("getChat")
+apiRoutes.get("/chats", async (c) => {
 
-				return fetchStreamChat(request, env, corsHeaders)
-			} else if (url.pathname.startsWith("/api/")) {
-				// const isValid = await isValidateToken(request, env)
+	return getChatsByUserId(c)
+})
+apiRoutes.get("/chats/:id", getChatById)
+apiRoutes.delete("/chats/:id", deleteChat)
 
-				// if (!isValid) {
-				// 	return responseError(null, "Unauthorized", 401, corsHeaders)
-				// }
+// Message endpoints
+apiRoutes.get("/chats/:chatId/messages", getMessagesByChatId)
+apiRoutes.post("/messages", saveMessage)
 
-				// else if (url.pathname.startsWith("/api/")) {
-				const db = env.DB_CHAT
-				if (!db) {
-					return responseError(null, "No db environment found", 404, corsHeaders)
-				}
+// apiRoutes.get("/documents", getChatsByUserId)
+// apiRoutes.post("/documents", saveMessage)
+// apiRoutes.get("/documents/:id", getChatById)
+// apiRoutes.delete('/documents/:id', async (c) => {
+//   return responseSuccess(c, null, 'Document deleted successfully')
+// }
 
-				if (menthod === "GET") {
-					switch (path) {
-						case "/api/chat-by-id":
-							return getChatById(request, db, corsHeaders)
-						case "/api/chat-by-userid":
-							return getChatsByUserId(request, db, corsHeaders)
-						case "/api/message-by-chatid":
-							return getMessagesByChatId(request, db, corsHeaders)
+app.route(`/api/${API_VERSION}`, apiRoutes)
 
-						default:
-							return responseFailed(null, "Invalid get api", 404, corsHeaders)
-					}
-				} else if (menthod === "POST") {
-					switch (path) {
-						case "/api/message":
-							return saveMessage(request, db, corsHeaders)
-						// case "/api/start-chat":
-						// 	return startChat(request, db, corsHeaders)
-						// case "/api/finish-chat":
-						// 	return finishChat(request, db, corsHeaders)
-						default:
-							return responseFailed(null, "Invalid post api", 404, corsHeaders)
-					}
-				} else if (menthod === "DELETE") {
-					switch (path) {
-						case "/api/delete-chat":
-							return deleteChat(request, db, corsHeaders)
+// 404 handler
+app.notFound((c) => responseFailed(c, null, "Invalid API endpoint", 404))
 
-						default:
-							break;
-					}
-				}
-			}
+// Global error handler
+app.onError((err, c) => {
+	console.error("Exception:", err)
+	return responseError(c, err.message || "An unknown error occurred", 500)
+})
 
-			return responseError(null, "Invalid api", 404, corsHeaders)
-		} catch (err) {
-			const errorMessage = err.message || "An unknown error occurred"
-			console.log("Exception", err)
-			return responseError(err, errorMessage, 500, corsHeaders)
-		}
-	},
-}
+export default app
