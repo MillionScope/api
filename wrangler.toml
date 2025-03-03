@@ -24,6 +24,7 @@ ALLOWED_ORIGIN = "https://millionscope.github.io"
 ALLOWED_ORIGIN2 = "https://millionscope.pages.dev"
 ALLOWED_ORIGIN3 = "https://millionscope.com"
 GITHUB_CLIENT_ID = "Ov23liaP7osUAakZI87r"
+GOOGLE_CLIENT_ID="1067947432723-acs8ra48r44nfb28j2vgls1prrigvkl6.apps.googleusercontent.com"
 ENVIRONMENT = "production"
 NODE_VERSION = "22.14.0"
 

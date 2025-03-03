@@ -9,16 +9,7 @@ export async function handleGoogleCallback(request, env, corsHeaders) {
 		return responseFailed(null, "Authorization code not found", 400, corsHeaders)
 	}
 
-	console.log("GOOGLE_CLIENT_ID", env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, code, env.ALLOWED_ORIGIN)
-	const dataaaa  = new URLSearchParams({
-		code,
-		client_id: env.GOOGLE_CLIENT_ID,
-		client_secret: env.GOOGLE_CLIENT_SECRET,
-		redirect_uri: env.ALLOWED_ORIGIN,
-		grant_type: "authorization_code",
-	})
-	console.log(String(dataaaa))
-
+	console.log("GOOGLE_CLIENT_ID", env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, code, url.origin)
 	// ~~~~~~~~~~~~~ VERIFY TO GET TOKEN ~~~~~~~~~~~~~
 	const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
 		method: "POST",
@@ -29,26 +20,21 @@ export async function handleGoogleCallback(request, env, corsHeaders) {
 			code,
 			client_id: env.GOOGLE_CLIENT_ID,
 			client_secret: env.GOOGLE_CLIENT_SECRET,
-			redirect_uri: env.ALLOWED_ORIGIN,
-			redirect_uri_mismatch: env.ALLOWED_ORIGIN,
+			redirect_uri: `${url.origin}/auth/callback/google`,
 			grant_type: "authorization_code",
 		}),
 	})
 
-	const data222 = await tokenResponse.json()
-	console.log("data222", data222)
-	if (!tokenResponse.ok) {
-		console.log("tokenResponse", tokenResponse)
-		console.log("Failed to exchange authorization code", code)
-		return responseFailed(null, `Failed to exchange authorization code ${code}`, 400, corsHeaders)
-	}
-
 	// ~~~~~~~~~~~~~ GET TOKEN ~~~~~~~~~~~~~
 	const tokenData = await tokenResponse.json()
 	if (!tokenData.access_token) {
+		console.log("tokenData", JSON.stringify(tokenData))
 		return responseFailed(null, `Invalid Google OAuth response: ${JSON.stringify(tokenData)}`, 400, corsHeaders)
 	}
-	console.log("tokenData", JSON.stringify(tokenData))
+	// console.log("tokenData", JSON.stringify(tokenData))
+	let access_token = tokenData.access_token
+	let refresh_token = tokenData.refresh_token
+	let expires_in = tokenData.expires_in
 
 	// ~~~~~~~~~~~~~ GET USER INFO ~~~~~~~~~~~~~
 	const userInfoResponse = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
@@ -96,7 +82,6 @@ export async function handleGoogleCallback(request, env, corsHeaders) {
 	// 		return responseFailed(null, "Failed to create accounts", 500, corsHeaders)
 	// 	}
 	// }
-
 	const expiredDate = Math.floor(Date.now() / 1000) + 24 * 60 * 60
 	const googleid = userInfo.id.toString()
 
