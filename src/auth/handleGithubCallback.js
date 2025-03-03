@@ -1,15 +1,16 @@
 import { sign } from "@tsndr/cloudflare-worker-jwt"
 import { responseFailed } from "../response"
 
-export async function handleGithubCallback(request, env, corsHeaders) {
-	const url = new URL(request.url)
+export async function handleGithubCallback(c) {
+	console.log("handleGithubCallback")
+	const url = new URL(c.req.url)
 	const code = url.searchParams.get("code")
 
 	if (!code) {
-		return responseFailed(null, "No code provided", 400, corsHeaders)
+		return responseFailed(c, null, "No code provided", 400)
 	}
 
-	console.log("env", env.GITHUB_CLIENT_ID, env.GITHUB_CLIENT_SECRET, code)
+	console.log("env", c.env.GITHUB_CLIENT_ID, c.env.GITHUB_CLIENT_SECRET, code)
 
 	// Exchange code for access token
 	const tokenResponse = await fetch("https://github.com/login/oauth/access_token", {
@@ -19,8 +20,8 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 			Accept: "application/json",
 		},
 		body: JSON.stringify({
-			client_id: env.GITHUB_CLIENT_ID,
-			client_secret: env.GITHUB_CLIENT_SECRET,
+			client_id: c.env.GITHUB_CLIENT_ID,
+			client_secret: c.env.GITHUB_CLIENT_SECRET,
 			code,
 		}),
 	})
@@ -29,14 +30,14 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 	if (!tokenResponse.ok) {
 		const errorText = await tokenResponse.text()
 		console.error("GitHub Token Error:", errorText)
-		return responseFailed(null, `GitHub token request failed: ${errorText}`, 400, corsHeaders)
+		return responseFailed(c, null, `GitHub token request failed: ${errorText}`, 400)
 	}
 
 	const tokenData = await tokenResponse.json()
 	console.log("tokenData", JSON.stringify(tokenData))
 
 	if (!tokenData.access_token) {
-		return responseFailed(null, `Invalid GitHub OAuth response: ${JSON.stringify(tokenData)}`, 400, corsHeaders)
+		return responseFailed(c, null, `Invalid GitHub OAuth response: ${JSON.stringify(tokenData)}`, 400)
 	}
 
 	// Get user data from GitHub
@@ -51,20 +52,20 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 	if (!userResponse.ok) {
 		const errorText = await userResponse.text()
 		console.error("GitHub API Error:", userResponse.status, errorText)
-		return responseFailed(null, `GitHub API Error: ${userResponse.status} - ${errorText}`, userResponse.status, corsHeaders)
+		return responseFailed(c, null, `GitHub API Error: ${userResponse.status} - ${errorText}`, userResponse.status)
 	}
 
 	const userData = await userResponse.json()
 	if (!userData) {
 		console.log("userData", JSON.stringify(userData))
-		return responseFailed(null, "Failed to get Github user", 500, corsHeaders)
+		return responseFailed(c, null, "Failed to get Github user", 500)
 	}
 
 	// if (!userData) {
 	// 	// If user does not exist, insert new user and account
-	// 	const db = env.DB_HEMVIP
+	// 	const db = c.env.DB_HEMVIP
 	// 	if (!db) {
-	// 		return responseFailed(null, "No database found", 404, corsHeaders)
+	// 		return responseFailed(c, null, "No database found", 404)
 	// 	}
 
 	// 	console.log(" userData.email", userData.email)
@@ -74,7 +75,7 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 	// 		.run()
 	// 	if (!respUser) {
 	// 		console.log("respUser", respUser)
-	// 		return responseFailed(null, "Failed to create user", 500, corsHeaders)
+	// 		return responseFailed(c, null, "Failed to create user", 500)
 	// 	}
 
 	// 	const idQuery = await db.prepare("SELECT last_insert_rowid() as id").first()
@@ -89,7 +90,7 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 
 	// 	if (!respAccount) {
 	// 		console.log("respAccount", respAccount)
-	// 		return responseFailed(null, "Failed to create accounts", 500, corsHeaders)
+	// 		return responseFailed(c, null, "Failed to create accounts", 500)
 	// 	}
 	// }
 
@@ -98,7 +99,7 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 
 	if (!githubid) {
 		console.error("GitHub user is null or undefined")
-		return responseFailed(null, "GitHub user is null or undefined", 400, corsHeaders)
+		return responseFailed(c, null, "GitHub user is null or undefined", 400)
 	}
 
 	// *********************** Create JWT token ***********************
@@ -111,7 +112,7 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 			avatar: userData.avatar_url,
 			exp: expiredDate,
 		},
-		env.JWT_SECRET
+		c.env.JWT_SECRET
 	)
 
 	// const respSession = await db
@@ -120,18 +121,15 @@ export async function handleGithubCallback(request, env, corsHeaders) {
 	// 	.run()
 	// if (respSession.changes !== 1) {
 	// 	console.log("respSession", respSession)
-	// 	return responseFailed(null, "Failed to create session", 500, corsHeaders)
+	// 	return responseFailed(c, null, "Failed to create session", 500)
 	// }
 
 	// Create a new response with the updated headers
-	const response = Response.redirect(`${env.ALLOWED_ORIGIN}/`, 302)
-
-	// Set the Set-Cookie header using the correct method
-	const responseWithCookie = new Response(response.body, response)
-	responseWithCookie.headers.set(
-		"Set-Cookie",
-		`auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
-	)
-
-	return responseWithCookie
+	return new Response(null, {
+		status: 302,
+		headers: {
+			Location: `${c.env.ALLOWED_ORIGIN}/`,
+			"Set-Cookie": `auth-token=${session_token}; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=${24 * 60 * 60}`
+		}
+	})
 }

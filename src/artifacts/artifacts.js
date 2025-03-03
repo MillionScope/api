@@ -1,39 +1,50 @@
-// api/src/artifacts/image.js
-import { createDocumentHandler } from "./artifacts.js";
+// api/src/utils/response.js
+export function responseSuccess(data, message, headers = {}) {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      data,
+      message,
+    }),
+    {
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+    }
+  );
+}
 
-export const imageDocumentHandler = createDocumentHandler({
-  kind: "image",
-  onCreateDocument: async ({ title, dataStream, session }) => {
-    const workersai = session.env.AI;
+export function responseError(error, message, status = 500, headers = {}) {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error,
+      message,
+    }),
+    {
+      status,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+    }
+  );
+}
 
-    // Using Cloudflare's Stable Diffusion model
-    const result = await workersai.run("@cf/stabilityai/stable-diffusion-xl-base-1.0", {
-      prompt: title,
-    });
-
-    const base64Image = result.data[0];
-
-    dataStream.writeData({
-      type: "image-delta",
-      content: base64Image,
-    });
-
-    return base64Image;
-  },
-  onUpdateDocument: async ({ description, dataStream, session }) => {
-    const workersai = session.env.AI;
-
-    const result = await workersai.run("@cf/stabilityai/stable-diffusion-xl-base-1.0", {
-      prompt: description,
-    });
-
-    const base64Image = result.data[0];
-
-    dataStream.writeData({
-      type: "image-delta",
-      content: base64Image,
-    });
-
-    return base64Image;
-  },
-});
+export function responseFailed(data, message, status = 400, headers = {}) {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      data,
+      message,
+    }),
+    {
+      status,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+      },
+    }
+  );
+}

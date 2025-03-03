@@ -6,26 +6,26 @@ import { getMostRecentUserMessage } from "./utils"
 import { systemPrompt } from "@/prompts"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
-export async function fetchStreamChat(request, env, corsHeaders) {
-	const aienv = env.AI
+export async function fetchStreamChat(c) {
+	const aienv = c.env.AI
 	if (!aienv) {
 		console.log("aienv", aienv)
-		return responseFailed(null, "No ai environment found", 404, corsHeaders)
+		return responseFailed(c, "No ai environment found", 404)
 	}
 	console.log("aienv", JSON.stringify(aienv))
 
-	const db = env.DB_CHAT
+	const db = c.env.DB_CHAT
 	if (!db) {
 		console.log("db", db)
-		return responseFailed(null, "No db environment found", 404, corsHeaders)
+		return responseFailed(c, "No db environment found", 404)
 	}
 
-	const { id, messages, selectedChatModel } = await request.json()
+	const { id, messages, selectedChatModel } = await c.req.json()
 	const userid = "5553a32b2fa51b29575dbe28bd6b36cd"
 
 	if (!id || !messages || !selectedChatModel) {
 		console.log("data", { id, messages, selectedChatModel })
-		return responseFailed(null, "Missing param in request", 400, corsHeaders)
+		return responseFailed(c, "Missing param in request", 400)
 	}
 	console.log("id, messages, selectedChatModel", id, JSON.stringify(messages), selectedChatModel)
 
@@ -35,7 +35,7 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 
 	if (!userMessage) {
 		console.log("messages", messages)
-		return responseFailed(null, "No user message found", 400, corsHeaders)
+		return responseFailed(c, "No user message found", 400)
 	}
 
 	const chat = await getChatById(db, id)
@@ -48,13 +48,6 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 
 	const newMessage = [{ ...userMessage, createdAt: new Date().toISOString(), chatId: id }]
 	console.log("newMessage", JSON.stringify(newMessage))
-	const abc = {
-		id: newMessage.id,
-		chatId: newMessage.chatId,
-		role: newMessage.role,
-		content: newMessage.content,
-		createdAt: new Date().toISOString(),
-	}
 	await saveMessages(db, newMessage)
 
 	// Use the AI provider to interact with the Vercel AI SDK
@@ -80,9 +73,6 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 	// 	},
 	// })
 	return createDataStreamResponse({
-		headers: {
-			...corsHeaders,
-		},
 		execute: (dataStream) => {
 			const result = streamText({
 				model: workersai("@cf/meta/llama-2-7b-chat-int8"),
@@ -127,15 +117,13 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 							reasoning,
 						})
 
-						const messagesSanitized = sanitizedResponseMessages.map((message) => {
-							return {
-								id: message.id,
-								chatId: id,
-								role: message.role,
-								content: message.content,
-								createdAt: new Date().toISOString(),
-							}
-						})
+						const messagesSanitized = sanitizedResponseMessages.map((message) => ({
+							id: message.id,
+							chatId: id,
+							role: message.role,
+							content: message.content,
+							createdAt: new Date().toISOString(),
+						}))
 
 						await saveMessages(db, messagesSanitized)
 					} catch (error) {
@@ -156,7 +144,7 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 			})
 		},
 		onError: () => {
-			return "Oops, an error occured!"
+			return "Oops, an error occurred!"
 		},
 	})
 }

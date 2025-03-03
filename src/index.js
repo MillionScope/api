@@ -19,25 +19,18 @@ const app = new Hono()
 // Middleware for CORS
 app.use(
 	"*",
-	cors((c) => {
-		const allowedOrigins = [c.env.ALLOWED_ORIGIN, c.env.ALLOWED_ORIGIN2, c.env.ALLOWED_ORIGIN3]
-		const origin = c.req.header("Origin")
-		console.log("origin", origin)
-		return {
-			origin: allowedOrigins.includes(origin) ? origin : "abc",
-			allowMethods: ["GET", "HEAD", "POST", "OPTIONS", "PATCH"],
-			allowHeaders: ["Content-Type"],
-			credentials: true,
-			maxAge: 86400,
-		}
+	cors({
+		origin: (origin) => origin,
+		allowMethods: ["GET", "HEAD", "POST", "OPTIONS", "PATCH"],
+		allowHeaders: ["Content-Type"],
+		credentials: true,
+		maxAge: 86400,
 	})
 )
 
 // Auth routes
-app.post("/auth/callback/github", handleGithubCallback)
-app.post("/auth/callback/google", handleGoogleCallback)
-app.get("/auth/user", handleGetUser)
-app.post("/auth/logout", handleLogout)
+app.get("/auth/callback/github", handleGithubCallback)
+app.get("/auth/callback/google", handleGoogleCallback)
 app.post("/auth/create", createUser)
 
 // Chat routes
@@ -50,26 +43,47 @@ app.post("/chat", async (c) => {
 
 // Document API routes
 const apiRoutes = new Hono()
+apiRoutes.use(
+	`/api/${API_VERSION}`,
+	cors({
+		origin: (origin) => origin,
+		allowMethods: ["GET", "HEAD", "POST", "OPTIONS", "PATCH"],
+		allowHeaders: ["Content-Type"],
+		credentials: true,
+		maxAge: 86400,
+	})
+)
 
 // Chat endpoints
-// console.log("getChat")
 apiRoutes.get("/chats", async (c) => {
-
+	const userId = c.req.query('userid')
 	return getChatsByUserId(c)
 })
-apiRoutes.get("/chats/:id", getChatById)
-apiRoutes.delete("/chats/:id", deleteChat)
+apiRoutes.get("/chats/:id", async (c) => {
+	const chatId = c.req.param('id')
+	return getChatById(c)
+})
+apiRoutes.delete("/chats/:id", async (c) => {
+	const chatId = c.req.param('id')
+	return deleteChat(c)
+})
+apiRoutes.get("/auth/user", handleGetUser)
+apiRoutes.post("/auth/logout", handleLogout)
 
 // Message endpoints
-apiRoutes.get("/chats/:chatId/messages", getMessagesByChatId)
+apiRoutes.get("/chats/:chatId/messages", async (c) => {
+	const chatId = c.req.param('chatId')
+	return getMessagesByChatId(c)
+})
 apiRoutes.post("/messages", saveMessage)
 
+// Document endpoints (commented for reference)
 // apiRoutes.get("/documents", getChatsByUserId)
 // apiRoutes.post("/documents", saveMessage)
 // apiRoutes.get("/documents/:id", getChatById)
 // apiRoutes.delete('/documents/:id', async (c) => {
 //   return responseSuccess(c, null, 'Document deleted successfully')
-// }
+// })
 
 app.route(`/api/${API_VERSION}`, apiRoutes)
 

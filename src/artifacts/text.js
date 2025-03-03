@@ -1,76 +1,55 @@
-import { textDocumentHandler } from "./text.js";
-import { codeDocumentHandler } from "./code.js";
-import { imageDocumentHandler } from "./image.js";
-import { sheetDocumentHandler } from "./sheet.js";
+import { createDocumentHandler } from "./handler";
 
-/**
- * Creates a document handler for a specific artifact type
- * @param {Object} config Configuration object
- * @param {string} config.kind - The kind of artifact ('text', 'code', 'image', 'sheet')
- * @param {Function} config.onCreateDocument - Function to handle document creation
- * @param {Function} config.onUpdateDocument - Function to handle document updates
- */
-export function createDocumentHandler(config) {
-  return {
-    kind: config.kind,
-    onCreateDocument: async ({ id, title, dataStream, session }) => {
-      try {
-        const db = session.env.DB_CHAT;
-        if (!db) throw new Error("Database not found");
+export const textDocumentHandler = createDocumentHandler({
+  kind: "text",
+  onCreateDocument: async ({ title, dataStream, session }) => {
+    let draftContent = "";
+    const workersai = session.env.AI;
 
-        const draftContent = await config.onCreateDocument({
-          id,
-          title,
-          dataStream,
-          session,
-        });
+    const result = await workersai.run("@cf/meta/llama-2-7b-chat-int8", {
+      messages: [
+        {
+          role: "system",
+          content: "Write about the given topic. Markdown is supported. Use headings where appropriate.",
+        },
+        { role: "user", content: title }
+      ],
+      stream: true
+    });
 
-        // Save to database
-        await db.prepare(
-          "INSERT INTO Document (id, title, content, userId, text) VALUES (?, ?, ?, ?, ?)"
-        )
-        .bind(id, title, draftContent, session.user.id, draftContent)
-        .run();
+    for await (const chunk of result) {
+      draftContent += chunk;
+      dataStream.writeData({
+        type: "text-delta",
+        content: chunk
+      });
+    }
 
-        return draftContent;
-      } catch (err) {
-        console.error("Create document error:", err);
-        throw err;
-      }
-    },
-    onUpdateDocument: async ({ document, description, dataStream, session }) => {
-      try {
-        const db = session.env.DB_CHAT;
-        if (!db) throw new Error("Database not found");
+    return draftContent;
+  },
+  onUpdateDocument: async ({ document, description, dataStream, session }) => {
+    let draftContent = "";
+    const workersai = session.env.AI;
 
-        const draftContent = await config.onUpdateDocument({
-          document,
-          description,
-          dataStream,
-          session,
-        });
+    const result = await workersai.run("@cf/meta/llama-2-7b-chat-int8", {
+      messages: [
+        {
+          role: "system",
+          content: `Update the following text based on the description. Original text: ${document.content}`
+        },
+        { role: "user", content: description }
+      ],
+      stream: true
+    });
 
-        // Update in database
-        await db.prepare(
-          "UPDATE Document SET content = ?, text = ? WHERE id = ? AND userId = ?"
-        )
-        .bind(draftContent, draftContent, document.id, session.user.id)
-        .run();
+    for await (const chunk of result) {
+      draftContent += chunk;
+      dataStream.writeData({
+        type: "text-delta",
+        content: chunk
+      });
+    }
 
-        return draftContent;
-      } catch (err) {
-        console.error("Update document error:", err);
-        throw err;
-      }
-    },
-  };
-}
-
-export const documentHandlersByArtifactKind = [
-  textDocumentHandler,
-  codeDocumentHandler,
-  imageDocumentHandler,
-  sheetDocumentHandler,
-];
-
-export const artifactKinds = ["text", "code", "image", "sheet"];
+    return draftContent;
+  }
+});
