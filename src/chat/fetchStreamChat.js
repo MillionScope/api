@@ -1,9 +1,10 @@
 import { createWorkersAI } from "workers-ai-provider"
 import { createDataStreamResponse, generateObject, generateText, smoothStream, streamText } from "ai"
-import { generateTitleFromUserMessage } from "@/ai/task"
+import { createDocument, generateTitleFromUserMessage, requestSuggestions, updateDocument } from "@/ai/task"
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
 import { systemPrompt } from "@/prompts"
+// import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
 export async function fetchStreamChat(request, env, corsHeaders) {
 	const aienv = env.AI
@@ -91,13 +92,31 @@ export async function fetchStreamChat(request, env, corsHeaders) {
 				experimental_transform: smoothStream({ chunking: "word" }),
 				// experimental_generateMessageId: generateUUID,
 				// tools: {
-				//   getWeather,
-				//   createDocument: createDocument({ session, dataStream }),
-				//   updateDocument: updateDocument({ session, dataStream }),
-				//   requestSuggestions: requestSuggestions({
-				//     session,
-				//     dataStream,
-				//   }),
+				// 	createDocument: async ({ title, content, kind }) => {
+				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
+				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
+
+				// 		const session = { env, user: { id: userid } };
+				// 		return handler.onCreateDocument({
+				// 			id: crypto.randomUUID(),
+				// 			title,
+				// 			dataStream,
+				// 			session
+				// 		});
+				// 	},
+				// 	updateDocument: async ({ id, description, kind }) => {
+				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
+				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
+
+				// 		const session = { env, user: { id: userid } };
+				// 		const document = await getDocumentById(db, id);
+				// 		return handler.onUpdateDocument({
+				// 			document,
+				// 			description,
+				// 			dataStream,
+				// 			session
+				// 		});
+				// 	}
 				// },
 				onFinish: async ({ response, reasoning }) => {
 					try {
