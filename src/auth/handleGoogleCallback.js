@@ -24,14 +24,6 @@ export async function handleGoogleCallback(c) {
 		}),
 	})
 
-	// Log token request details for debugging
-	console.log("Token request details:", {
-		clientId: c.env.GOOGLE_CLIENT_ID ? "present" : "missing",
-		clientSecret: c.env.GOOGLE_CLIENT_SECRET ? "present" : "missing",
-		redirectUri,
-		code: code ? "present" : "missing"
-	})
-
 	// ~~~~~~~~~~~~~ GET TOKEN ~~~~~~~~~~~~~
 	const tokenData = await tokenResponse.json()
 	if (!tokenData.access_token) {

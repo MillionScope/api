@@ -5,8 +5,8 @@
 	"scripts": {
 		"dev": "run-p dev:*",
 		"dev:wrangler": "wrangler pages dev dist --live-reload",
-		"dev:esbuild": "esbuild --bundle src/server.js --format=esm --watch --outfile=dist/_worker.js",
-		"build": "esbuild --bundle src/server.js --format=esm --outfile=dist/_worker.js",
+		"dev:esbuild": "esbuild --bundle src/index.js --format=esm --watch --outfile=dist/_worker.js",
+		"build": "esbuild --bundle src/index.js --format=esm --outfile=dist/_worker.js",
 		"deploy": "wrangler pages publish dist"
 	},
 	"devDependencies": {
