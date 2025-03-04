@@ -8,11 +8,11 @@ import {
 	streamText,
 	wrapLanguageModel,
 } from "ai"
-import { generateTitleFromUserMessage, requestSuggestions, updateDocument } from "@/ai/task"
+import { generateTitleFromUserMessage } from "@/ai/task"
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
 import { generateUUID } from "@/utils"
-import { createDocument } from "@/ai/tools"
+import { createDocument } from "@/ai/create-document"
 import { systemPrompt } from "@/ai/prompts"
 import { getWeather } from "@/ai/get-weather"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
@@ -100,20 +100,9 @@ export async function fetchStreamChat(c) {
 				// , "updateDocument"
 				tools: {
 					getWeather,
-				// 	createDocument: createDocument({ dataStream }),
-				// 	// 	updateDocument: async ({ id, description, kind }) => { , workersai
-				// 	// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
-				// 	// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
-
-				// 	// 		const session = { env, user: { id: userid } };
-				// 	// 		const document = await getDocumentById(db, id);
-				// 	// 		return handler.onUpdateDocument({
-				// 	// 			document,
-				// 	// 			description,
-				// 	// 			dataStream,
-				// 	// 			session
-				// 	// 		});
-				// 	// 	}
+					// 	createDocument: createDocument({ dataStream }),
+					// 	// 	updateDocument: async ({ id, description, kind }) => { , workersai
+					// 	// 	}
 				},
 				onFinish: async ({ response, reasoning }) => {
 					try {
