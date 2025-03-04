@@ -60,17 +60,21 @@ apiRoutes.get("/chats/:id", getChatById)
 apiRoutes.delete("/chats/:id", deleteChat)
 apiRoutes.get("/chats", getChatsByUserId)
 
+// Chat stream
+apiRoutes.post("/chat/:id", fetchStreamChat)
+// apiRoutes.get("/chat/:id", async (c) => {
+// 	const data = await c.req.json()
+// 	return c.json({ message: "Received data", data })
+// })
+// , fetchStreamChat)
+
 // Chat messages operations
 apiRoutes.get("/chats/:id/messages", getMessagesByChatId)
 apiRoutes.post("/chats/:id/messages", saveMessage)
 
-// Chat stream
-apiRoutes.post("/chat/:id", fetchStreamChat)
-
 // ~~~~~~ Auth ~~~~~~
 apiRoutes.get("/auth/user", handleGetUser)
 apiRoutes.post("/auth/logout", handleLogout)
-
 apiRoutes.post("/messages", saveMessage)
 
 // apiRoutes.get("/documents", getChatsByUserId)

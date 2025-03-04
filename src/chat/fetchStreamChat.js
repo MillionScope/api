@@ -4,6 +4,7 @@ import { createDocument, generateTitleFromUserMessage, requestSuggestions, updat
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
 import { systemPrompt } from "@/prompts"
+import { generateUUID } from "@/utils"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
 export async function fetchStreamChat(c) {
@@ -12,22 +13,28 @@ export async function fetchStreamChat(c) {
 		console.log("aienv", aienv)
 		return responseFailed(c, "No ai environment found", 404)
 	}
-	console.log("aienv", JSON.stringify(aienv))
 
 	const db = c.env.DB_CHAT
 	if (!db) {
 		console.log("db", db)
 		return responseFailed(c, "No db environment found", 404)
 	}
-
+	let data
+	try {
+		data = await c.req.json()
+	} catch (err) {
+		console.error("Failed to parse request body:", err)
+		return responseFailed(c, "Invalid JSON in request body", 400)
+	}
+	console.log("fetchStreamChatc.req.json()", JSON.stringify(data))
 	const { id, messages, selectedChatModel } = await c.req.json()
 	const userid = "5553a32b2fa51b29575dbe28bd6b36cd"
+	console.log("id, messages, selectedChatModel", id, messages, selectedChatModel)
 
 	if (!id || !messages || !selectedChatModel) {
 		console.log("data", { id, messages, selectedChatModel })
 		return responseFailed(c, "Missing param in request", 400)
 	}
-	console.log("id, messages, selectedChatModel", id, JSON.stringify(messages), selectedChatModel)
 
 	const workersai = createWorkersAI({ binding: aienv })
 
@@ -72,17 +79,20 @@ export async function fetchStreamChat(c) {
 	// 		...corsHeaders,
 	// 	},
 	// })
+
 	return createDataStreamResponse({
 		execute: (dataStream) => {
 			const result = streamText({
-				model: workersai("@cf/meta/llama-2-7b-chat-int8"),
+				model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"), // @cf/meta/llama-2-7b-chat-int8
 				system: systemPrompt({ selectedChatModel }),
 				messages,
+				maxTokens: 2048,
 				maxSteps: 5,
 				experimental_transform: smoothStream({ chunking: "word" }),
-				// experimental_generateMessageId: generateUUID,
+				experimental_generateMessageId: generateUUID,
 				// tools: {
-				// 	createDocument: async ({ title, content, kind }) => {
+				// createDocument: async ({ title, content, kind }) => {
+				// console.log("title, content, kind", title, content, kind)
 				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
 				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
 
@@ -93,7 +103,7 @@ export async function fetchStreamChat(c) {
 				// 			dataStream,
 				// 			session
 				// 		});
-				// 	},
+				// },
 				// 	updateDocument: async ({ id, description, kind }) => {
 				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
 				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);

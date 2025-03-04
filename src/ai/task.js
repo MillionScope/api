@@ -10,6 +10,7 @@ export async function generateTitleFromUserMessage(workersai, message) {
 	  - do not use quotes or colons`,
 		prompt: JSON.stringify(message),
 	})
+	console.log("generateTitleFromUserMessage.title", title)
 
 	return title
 }
