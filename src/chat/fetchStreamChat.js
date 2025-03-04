@@ -15,6 +15,7 @@ import { generateUUID } from "@/utils"
 import { createDocument } from "@/ai/create-document"
 import { systemPrompt } from "@/ai/prompts"
 import { getWeather } from "@/ai/get-weather"
+import { updateDocument } from "@/ai/update-document"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
 export async function fetchStreamChat(c) {
@@ -100,8 +101,9 @@ export async function fetchStreamChat(c) {
 				// , "updateDocument"
 				tools: {
 					getWeather,
-					// 	createDocument: createDocument({ dataStream }),
-					// 	// 	updateDocument: async ({ id, description, kind }) => { , workersai
+					createDocument: createDocument({ dataStream, workersai }),
+					updateDocument: updateDocument({ dataStream, workersai }),
+					// 	updateDocument: async ({ id, description, kind }) => { , workersai
 					// 	// 	}
 				},
 				onFinish: async ({ response, reasoning }) => {
