@@ -7,15 +7,15 @@ export async function generateTitleFromUserMessage(workersai, message) {
 	  - you will generate a short title based on the first message a user begins a conversation with
 	  - ensure it is not more than 80 characters long
 	  - the title should be a summary of the user's message
-	  - do not use quotes or colons`,
+	  - do not use quotes or colons
+	  - do not wrap the title in quotes`,
 		prompt: JSON.stringify(message),
 	})
-	console.log("generateTitleFromUserMessage.title", title)
 
-	return title
+	return title.replace(/^["']|["']$/g, '') // Remove any quotes from start/end
 }
 
-export async function createDocument({ session, dataStream }) {
+export async function createDocument({ dataStream }) {
 	return async function({ title, content, userId }) {
 		try {
 			const db = session.env.DB_CHAT;

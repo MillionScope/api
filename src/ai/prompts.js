@@ -71,7 +71,7 @@ export const sheetPrompt = `
 You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
 `
 
-export const updateDocumentPrompt = (currentContent, type) =>
+export const updateDocumentPrompt = (currentContent,  type) =>
 	type === "text"
 		? `\
 Improve the following contents of the document based on the given prompt.

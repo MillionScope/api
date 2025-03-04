@@ -1,8 +1,9 @@
-import { myProvider } from '@/lib/ai/models';
-import { sheetPrompt, updateDocumentPrompt } from '@/lib/ai/prompts';
-import { createDocumentHandler } from '@/lib/artifacts/server';
+import { sheetPrompt, updateDocumentPrompt } from '@/ai/prompts';
+// import { myProvider } from '@/lib/ai/models';
+// import { createDocumentHandler } from '@/lib/artifacts/server';
 import { streamObject } from 'ai';
 import { z } from 'zod';
+import { createDocumentHandler } from './handler';
 
 export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
   kind: 'sheet',
@@ -10,7 +11,7 @@ export const sheetDocumentHandler = createDocumentHandler<'sheet'>({
     let draftContent = '';
 
     const { fullStream } = streamObject({
-      model: myProvider.languageModel('artifact-model'),
+      model: workersai('artifact-model'),
       system: sheetPrompt,
       prompt: title,
       schema: z.object({

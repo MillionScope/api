@@ -1,10 +1,19 @@
 import { createWorkersAI } from "workers-ai-provider"
-import { createDataStreamResponse, generateObject, generateText, smoothStream, streamText } from "ai"
-import { createDocument, generateTitleFromUserMessage, requestSuggestions, updateDocument } from "@/ai/task"
+import {
+	createDataStreamResponse,
+	extractReasoningMiddleware,
+	generateObject,
+	generateText,
+	smoothStream,
+	streamText,
+	wrapLanguageModel,
+} from "ai"
+import { generateTitleFromUserMessage, requestSuggestions, updateDocument } from "@/ai/task"
 import { responseFailed } from "@/response"
 import { getMostRecentUserMessage } from "./utils"
-import { systemPrompt } from "@/prompts"
 import { generateUUID } from "@/utils"
+import { createDocument } from "@/ai/tools"
+import { systemPrompt } from "@/ai/prompts"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
 export async function fetchStreamChat(c) {
@@ -19,14 +28,6 @@ export async function fetchStreamChat(c) {
 		console.log("db", db)
 		return responseFailed(c, "No db environment found", 404)
 	}
-	let data
-	try {
-		data = await c.req.json()
-	} catch (err) {
-		console.error("Failed to parse request body:", err)
-		return responseFailed(c, "Invalid JSON in request body", 400)
-	}
-	console.log("fetchStreamChatc.req.json()", JSON.stringify(data))
 	const { id, messages, selectedChatModel } = await c.req.json()
 	const userid = "5553a32b2fa51b29575dbe28bd6b36cd"
 	console.log("id, messages, selectedChatModel", id, messages, selectedChatModel)
@@ -83,40 +84,34 @@ export async function fetchStreamChat(c) {
 	return createDataStreamResponse({
 		execute: (dataStream) => {
 			const result = streamText({
-				model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"), // @cf/meta/llama-2-7b-chat-int8
+				// model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"), // @cf/meta/llama-2-7b-chat-int8
+				model: wrapLanguageModel({
+					model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"),
+					middleware: extractReasoningMiddleware({ tagName: "think" }),
+				}),
 				system: systemPrompt({ selectedChatModel }),
 				messages,
 				maxTokens: 2048,
 				maxSteps: 5,
 				experimental_transform: smoothStream({ chunking: "word" }),
 				experimental_generateMessageId: generateUUID,
+				// experimental_activeTools: ["createDocument"],
+				// , "updateDocument"
 				// tools: {
-				// createDocument: async ({ title, content, kind }) => {
-				// console.log("title, content, kind", title, content, kind)
-				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
-				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
+				// 	createDocument: createDocument({ dataStream }),
+				// 	// 	updateDocument: async ({ id, description, kind }) => { , workersai
+				// 	// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
+				// 	// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
 
-				// 		const session = { env, user: { id: userid } };
-				// 		return handler.onCreateDocument({
-				// 			id: crypto.randomUUID(),
-				// 			title,
-				// 			dataStream,
-				// 			session
-				// 		});
-				// },
-				// 	updateDocument: async ({ id, description, kind }) => {
-				// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
-				// 		if (!handler) throw new Error(`No handler found for kind: ${kind}`);
-
-				// 		const session = { env, user: { id: userid } };
-				// 		const document = await getDocumentById(db, id);
-				// 		return handler.onUpdateDocument({
-				// 			document,
-				// 			description,
-				// 			dataStream,
-				// 			session
-				// 		});
-				// 	}
+				// 	// 		const session = { env, user: { id: userid } };
+				// 	// 		const document = await getDocumentById(db, id);
+				// 	// 		return handler.onUpdateDocument({
+				// 	// 			document,
+				// 	// 			description,
+				// 	// 			dataStream,
+				// 	// 			session
+				// 	// 		});
+				// 	// 	}
 				// },
 				onFinish: async ({ response, reasoning }) => {
 					try {
