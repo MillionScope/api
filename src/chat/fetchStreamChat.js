@@ -14,6 +14,7 @@ import { getMostRecentUserMessage } from "./utils"
 import { generateUUID } from "@/utils"
 import { createDocument } from "@/ai/tools"
 import { systemPrompt } from "@/ai/prompts"
+import { getWeather } from "@/ai/get-weather"
 // import { documentHandlersByArtifactKind } from '../artifacts/artifacts.js'
 
 export async function fetchStreamChat(c) {
@@ -95,9 +96,10 @@ export async function fetchStreamChat(c) {
 				maxSteps: 5,
 				experimental_transform: smoothStream({ chunking: "word" }),
 				experimental_generateMessageId: generateUUID,
-				// experimental_activeTools: ["createDocument"],
+				experimental_activeTools: ["getWeather"],
 				// , "updateDocument"
-				// tools: {
+				tools: {
+					getWeather,
 				// 	createDocument: createDocument({ dataStream }),
 				// 	// 	updateDocument: async ({ id, description, kind }) => { , workersai
 				// 	// 		const handler = documentHandlersByArtifactKind.find(h => h.kind === kind);
@@ -112,7 +114,7 @@ export async function fetchStreamChat(c) {
 				// 	// 			session
 				// 	// 		});
 				// 	// 	}
-				// },
+				},
 				onFinish: async ({ response, reasoning }) => {
 					try {
 						// console.log("response", JSON.stringify(response))
