@@ -89,7 +89,7 @@ export async function fetchStreamChat(c) {
 				// model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"), // @cf/meta/llama-2-7b-chat-int8
 				model: wrapLanguageModel({
 					model: workersai("@cf/deepseek-ai/deepseek-r1-distill-qwen-32b"),
-					middleware: extractReasoningMiddleware({ tagName: "think" }),
+					middleware: extractReasoningMiddleware({ tagName: "think", startWithReasoning: true }),
 				}),
 				system: systemPrompt({ selectedChatModel }),
 				messages,
@@ -101,8 +101,8 @@ export async function fetchStreamChat(c) {
 				// , "updateDocument"
 				tools: {
 					getWeather,
-					createDocument: createDocument({ dataStream, workersai }),
-					updateDocument: updateDocument({ dataStream, workersai }),
+					// createDocument: createDocument({ dataStream, workersai }),
+					// updateDocument: updateDocument({ dataStream, workersai }),
 					// 	updateDocument: async ({ id, description, kind }) => { , workersai
 					// 	// 	}
 				},
@@ -122,7 +122,7 @@ export async function fetchStreamChat(c) {
 							content: message.content,
 							createdAt: new Date().toISOString(),
 						}))
-
+						console.log("messagesSanitized", JSON.stringify(messagesSanitized))
 						await saveMessages(db, messagesSanitized)
 					} catch (error) {
 						console.log("error", error)
